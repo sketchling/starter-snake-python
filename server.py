@@ -1,10 +1,13 @@
 import logging
 import os
+import requests
+import json
 
 from flask import Flask
 from flask import request
 
 import server_logic
+import frame_translator
 
 
 app = Flask(__name__)
@@ -50,6 +53,30 @@ def handle_move():
     Valid moves are "up", "down", "left", or "right".
     """
     data = request.get_json()
+
+    # TODO - look at the server_logic.py file to see how we decide what move to return!
+    move = server_logic.choose_move(data)
+
+    return {"move": move}
+
+@app.post("/replay")
+def handle_replay():
+    """
+    This function is called on every turn of a game. It's how your snake decides where to move.
+    Valid moves are "up", "down", "left", or "right".
+    """
+    data = request.get_json()
+
+    url = "https://engine.battlesnake.com/games/"+data["gameId"]+"/frames?limit=1&offset="+data["turn"]
+
+    frame = requests.get(url)
+
+    data = frame_translator.frameTranslator(json.loads(frame.text), data["gameId"],data["snakeName"])
+
+    print(data)
+
+    print(" --- translation done, now starting MOVE --- ")    
+
 
     # TODO - look at the server_logic.py file to see how we decide what move to return!
     move = server_logic.choose_move(data)
