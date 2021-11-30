@@ -53,7 +53,7 @@ def handle_move():
     Valid moves are "up", "down", "left", or "right".
     """
     data = request.get_json()
-
+    
     # TODO - look at the server_logic.py file to see how we decide what move to return!
     move = server_logic.choose_move(data)
 
