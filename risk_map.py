@@ -1,11 +1,11 @@
 #TO DO:
 '''
-implement enemies -blur- enemies - me
+
 implement head weighting
-Implement reduction of risk with distance (risk multiplier)
+
 MAke heatmap and foodmap a subclass of 'map'
 Implement love of food (without see-through snakes)
-make it aware of hazards
+make it aware of hazards & 'the sauce'
 Search for closing volumes and fill with risk.
  
 '''
@@ -20,36 +20,29 @@ class Heatmap:
     self.map = [[0 for x in range(self.size)] for x in range(self.size)]
     self.max_steps = 10
     self.threshold = 20
-    self.weight_body=20
-    self.weight_head =30
+    self.weight_body= 20
+    self.weight_head =40
+    self.distance_multiplier = 1
+    self.weight_food = -1
     #print(data)
     weight=0
     is_my_snake = False
 
-    # TO-DO - FIGURE OUT WHY THE HEATMAP IS NOT BEING GENERATED PROPERLY
-    #for some reason the snake isnt getting onto the heatmap
-    for snake in data['board']['snakes']:
+    '''for snake in data['board']['snakes']:
         
       #check if its my snake and if not assign weighting
-      if True: #snake['id'] == data['you']['id']:
+      #my_id = snake['id'] if snake['id'] == data['you']['id']
+      if snake['id'] != data['you']['id']:
         #assign map square to a value is it has sanke on it (INVERTING Y)
         for segment in snake['body']:
           self.map[(self.size-1) - segment['y']][segment['x']] = self.weight_body
-        '''self.map[self.size - data['you']['head']['y']-1][self.size - data['you']['head']['x']] = self.weight_head
-        for segment in data['you']['body']:
-          self.map[self.size -segment['y']-1][segment['x']] = self.weight_body+1
-        '''
-      '''else:
-        for segment in snake['body']:
-          i = 0
-          if i ==0:
-            self.map[segment['y']][segment['x']] = self.weight_head
-            i +=1
-          else:
-            self.map[segment['y']][segment['x']] = self.weight_body
-      ''' 
-       
-    #self.box_blur(1)
+        
+    self.box_blur(1)
+
+    for segment in data['you']['body']:
+          self.map[(self.size-1) - segment['y']][segment['x']] = self.weight_body
+    
+    '''
     #now put my snake on the map
     
 
@@ -93,6 +86,9 @@ class Heatmap:
               temp_blurred_map[cx][cy] = self.average_3x3(cx,cy)
               cy+=1
             cx +=1
+      for x in range(self.size):
+        for y in range (self.size):
+          self.map[x][y] = temp_blurred_map[x][y]
         
         
   def calc_lines(self, xpos, ypos):
@@ -125,10 +121,10 @@ class Heatmap:
             if num_steps <= 1:
                 risk = 100
             else:
-                risk = (line_sum / num_steps) *4
+                risk = (line_sum / num_steps) *4 - (num_steps * self.distance_multiplier)
                 
         #result.update({direction :{'total' : line_sum, 'steps' : num_steps, 'risk' : risk}})
-        print(f'{direction} has a risk of : {risk}')
+        #print(f'{direction} has a risk of : {risk}')
         result.update({direction : risk})
         line_sum = 0
         num_steps = 1
@@ -136,6 +132,27 @@ class Heatmap:
         
     print(f'result : {result}')        
     return result
+
+  def init_enemy_snakes(self,data):
+    for snake in data['board']['snakes']:
+          
+      #check if its my snake and if not assign weighting
+      #my_id = snake['id'] if snake['id'] == data['you']['id']
+      if snake['id'] != data['you']['id']:
+        #assign map square to a value is it has sanke on it (INVERTING Y)
+        for segment in snake['body']:
+          self.map[(self.size-1) - segment['y']][segment['x']] = self.weight_body
+          
+  def init_my_snake(self,data):
+    for segment in data['you']['body']:
+      self.map[(self.size-1) - segment['y']][segment['x']] = self.weight_body
+  
+  def init_food(self,data):
+    self.weight_food = -10+(data['you']['health']/10) #food attracts more as hunger strikes
+    for segment in data['board']['food']:
+      self.map[(self.size-1) - segment['y']][segment['x']] += self.weight_food
+    
+    
 
   def safest_path(self,xpos,ypos):
     risk_dict = self.calc_lines(xpos,ypos)

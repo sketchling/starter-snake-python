@@ -96,7 +96,10 @@ def choose_move(data: dict) -> str:
   
 
     
-    
+    my_risk_map.init_enemy_snakes(data)
+    my_risk_map.box_blur(1)
+    my_risk_map.init_food(data)
+    my_risk_map.init_my_snake(data)
     # Don't allow your Battlesnake to move back in on it's own neck
     possible_moves = my_risk_map.safest_path(my_head["x"],my_head["y"])
     print(f' Possible moves: {possible_moves}')
@@ -104,7 +107,9 @@ def choose_move(data: dict) -> str:
     possible_moves = avoid_my_neck(my_head, my_body, possible_moves)
     #possible_moves = check_for_food(my_head,data['you']['health'],possible_moves, data['board']['food'])
     
-    move = random.choice(possible_moves)
+
+    if len(possible_moves) >0:
+      move = random.choice(possible_moves)
 
    
     my_risk_map.print()
