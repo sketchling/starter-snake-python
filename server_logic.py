@@ -1,118 +1,135 @@
 import random
 import risk_map
 from typing import List, Dict
+print_info = True
 
-"""
-This file can be a nice home for your move logic, and to write helper functions.
 
-We have started this for you, with a function to help remove the 'neck' direction
-from the list of possible moves!
-"""
+#avoid other snakes is going haywire!!!
+
+
 def avoid_walls(my_head: Dict[str,int],possible_moves: List[str],gridsize: int) -> List[str]:
   for move in range(len(possible_moves)-1):
     if my_head['y'] == gridsize-1 and 'up' in possible_moves:
       possible_moves.remove('up')  
-      print('----DELETED UP')
     if my_head['y'] == 0 and 'down' in possible_moves:
       possible_moves.remove('down')  
-      print('----DELETED down')
     if my_head['x'] == 0 and 'left' in possible_moves:
       possible_moves.remove('left')  
-      print('----DELETED left')
     if my_head['x'] == gridsize-1 and 'right' in possible_moves:
       possible_moves.remove('right')  
-      print('----DELETED right')
-  
-  print (f'---------------------\n {possible_moves}\n')
+
   return possible_moves
 
 #change to avoid snakes - create array of all snake that isnt tail and check pos in question against it
-def avoid_my_neck(my_head: Dict[str, int], my_body: List[dict], possible_moves: List[str]) -> List[str]:
-  """
-    my_head: Dictionary of x/y coordinates of the Battlesnake head.
-            e.g. {"x": 0, "y": 0}
-    my_body: List of dictionaries of x/y coordinates for every segment of a Battlesnake.
-            e.g. [ {"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0} ]
-    possible_moves: List of strings. Moves to pick from.
-            e.g. ["up", "down", "left", "right"]
+def avoid_all_snakes(data, possible_moves: List[str]) -> List[str]:
+  directions = {'up':(0,1),'right': (1,0),'down': (0,-1), 'left':(-1,0)}
+  moves = possible_moves.copy()
+  next_heads = []
 
-    return: The list of remaining possible_moves, with the 'neck' direction removed
-  """
-  my_neck = my_body[1]
-  for move in possible_moves:
-    if move == 'up' and my_neck["y"] > my_head["y"]:
-      possible_moves.remove("up")
-    elif move == 'down' and my_neck["y"] < my_head["y"]:
-      possible_moves.remove("down")
-    elif move == 'left' and my_neck["x"] < my_head["x"]:
-      possible_moves.remove("left")
-    elif move == 'right' and my_neck["x"] > my_head["x"]:
-      possible_moves.remove("right")
+  for dir in possible_moves:
+    #print(f"checking {dir} out of {possible_moves}")
+    temp_x = data['you']['head']['x'] + directions[dir][0]
+    temp_y = data['you']['head']['y'] + directions[dir][1]
 
+    #print(f"Current head { data['you']['head']['x']}, {data['you']['head']['y']} and current offset is {temp_x},{temp_y} for {dir}")
+    for snake in data['board']['snakes']:
+      if snake['id'] != data['you']['id']:
+        for dir in directions:
+          next_heads.append((snake['body'][0]['x']+directions[dir][0],snake['body'][0]['y']+directions[dir][1]))
+          #print(f"{snake['name'][0]} {snake['body']}")
+          # print(f'{next_heads} is next heads')
+          #iterate through the body but not the tail
+      for i in range(len(snake['body'])-1):
+        if (temp_x == snake['body'][i]['x'] and temp_y == snake['body'][i]['y']): #or ((temp_x,temp_y) in next_heads): 
+          if dir in moves:
+            print(f" Just removed {dir}")
+            moves.remove(dir)
+            #print(f'Removing: {dir} as it collides with snake body') 
+   
+    possible_moves = moves
   return possible_moves
 
-def check_for_food(my_head: Dict[str, int],my_health: int, possible_moves: List[str],food_list: List[dict]) -> List[str]:
-  #define what transforms are around the head
-  transform = {'left': {'x':-1,'y':0},'right':{'x':1,'y':0},'up':{'x':0,'y':1},'down':{'x':0,'y':-1}}
-  #create a dict to catch any positive hits on the food
-  found_food = {'found' : False, 'direction' : ''}
+def direction_of(here, there):
+  dirs = []
   
-  for move in possible_moves:
-    #Check all spaces around the head using the transform offsets
-    x = int(my_head['x'] + transform[move]['x'])
-    y = int(my_head['y'] + transform[move]['y'])
-    pos = {'x':x,'y': y}
-    if pos in food_list:
-      found_food['found'] = True
-      print('YUM!!!!!!!')
-      found_food['direction'] = move
-  if my_health < 40 and found_food['found']:
-    newmoves = []
-    newmoves.add(move)
-    return newmoves
-  else:
-    return possible_moves
+  if here[0] < there[0]:
+    dirs.append('left')
+  elif here[0] > there[0]:
+    dirs.append('right')
+  
+  if here[1] < there[1]:
+    dirs.append('up')
+  elif here[0] > there[0]:
+    dirs.append('down')
 
+  return dirs #return a list of all the directions between the two coordinates
 
+def is_against_wall(my_head,size):
+  
+  is_head_against_a_wall = (my_head['x'] <= 0 or my_head['x'] >= size or my_head['y'] <= 0 or my_head['y'] >= size) 
+  print(f'Head is against a wall? {is_head_against_a_wall}')
+  return is_head_against_a_wall
 
-
+def avoid_deathtraps(my_head,data,possible_directions):
+  size = size = data['board']['height']-1
+  if is_against_wall(my_head,size) and not is_against_wall(data['you']['body'][1],size) :
+    for i in range(len(data['you']['body'])-1):
+      if is_against_wall(data['you']['body'][i],size) and i>0:
+        head_tup = (data['you']['head']['x'],data['you']['head']['y'])
+        touch_tup = (data['you']['body'][i]['x'],data['you']['body'][i]['y'])
+        danger_dirs = direction_of(head_tup,touch_tup)
+        print('DEATHTRAP RISK DETECTED!!!!!!')
+        for dir in danger_dirs:
+          if dir in possible_directions:
+            print(f'removed {dir} as this was certain death!')
+            possible_directions.remove(dir)
+        return possible_directions
+  return possible_directions
+        
 
 def choose_move(data: dict) -> str:
     
     possible_moves = ["up", "down", "left", "right"]
     my_head = data["you"]["head"]  # A dictionary of x/y coordinates like {"x": 0, "y": 0}
     my_body = data["you"]["body"]  # A list of x/y coordinate dictionaries like [ {"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0} ]
-    #print('\n'*13)
+   
+    my_risk_map = risk_map.Riskmap(data)
+    my_risk_map.init_enemy_snakes(data)
+    my_risk_map.init_my_snake(data)
+    my_risk_map.init_food(data)
     
-    '''print(f"~~~ Turn: {data['turn']}  Game Mode: {data['game']['ruleset']['name']} ~~~")
-    print(f"All board data this turn: {data}")
-    print(f"My Battlesnakes head this turn is: {my_head}")
-    print(f"My Battlesnakes body this turn is: {my_body}")'''
-    my_risk_map = risk_map.Heatmap(data)
+    possible_moves = avoid_walls(my_head,possible_moves,my_risk_map.size)
+    print('\n')
     
-    #print(f'Safest Path : {my_risk_map.safest_path(my_head["x"],my_head["x"])}')
-    #Using min() + list comprehension + values()
-    # Finding min value keys in dictionary
-  
+    # Deal with the really stupid death scenarios that confuse the riskmap setup
+    possible_moves = avoid_all_snakes(data, possible_moves)
+    
+    if print_info :
+      print(f'Possible moves before risk mapping - before deathtraps {possible_moves}')
+    
+    possible_moves = avoid_deathtraps(my_head,data,possible_moves)
+    #then choose from the remaining paths
+
+    if print_info :
+      print(f'Possible moves before risk mapping - after deathtraps {possible_moves}')
+
+    possible_moves = my_risk_map.safest_path(my_head["x"],my_head["y"],possible_moves)
+    
+
 
     
-    my_risk_map.init_enemy_snakes(data)
-    my_risk_map.box_blur(1)
-    my_risk_map.init_food(data)
-    my_risk_map.init_my_snake(data)
-    # Don't allow your Battlesnake to move back in on it's own neck
-    possible_moves = my_risk_map.safest_path(my_head["x"],my_head["y"])
-    print(f' Possible moves: {possible_moves}')
-    #possible_moves = avoid_walls(my_head, possible_moves, data["board"]["height"]) 
-    possible_moves = avoid_my_neck(my_head, my_body, possible_moves)
-    #possible_moves = check_for_food(my_head,data['you']['health'],possible_moves, data['board']['food'])
-    
+    if print_info :
+      print(f'Possible moves after: {possible_moves}')
+
 
     if len(possible_moves) >0:
       move = random.choice(possible_moves)
+    else:
+      move = 'down' # No options left... snakies going down!!!
 
    
-    my_risk_map.print()
+    if print_info:
+      my_risk_map.print()
     
     print(f"MOVE {data['turn']}")
     #print(f"\n\n{data['game']['id']} MOVE {data['turn']}:\n {move} picked from all valid options in {possible_moves}\n\n")
