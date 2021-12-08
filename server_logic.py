@@ -1,7 +1,7 @@
 import random
 import risk_map
 from typing import List, Dict
-print_info = False
+print_info = True
 
 
 #avoid other snakes is going haywire!!!
@@ -43,12 +43,13 @@ def avoid_all_snakes(data, possible_moves: List[str]) -> List[str]:
       
       for i,segment in enumerate(snake['body']):
         #print(f"{segment} is {i} " )
-        if (i <= len(snake['body'])-1) and (temp_x == segment['x'] and temp_y == segment['y']) or ((temp_x,temp_y) in next_heads): 
+        if (i <= len(snake['body'])-1) and (temp_x == segment['x'] and temp_y == segment['y']): 
+          # or ((temp_x,temp_y) in next_heads)): 
           if dir in possible_moves:
             if print_info: 
-              pass#print(f"Removed {dir} to avoid snake {snake['name']}")
+              print(f"Removed {dir} to avoid snake {snake['name']}")
             possible_moves.remove(dir)
-            #print(f'Removing: {dir} as it collides with snake body') 
+            
    
     possible_moves = moves
   return possible_moves
@@ -102,9 +103,13 @@ def choose_move(data: dict) -> str:
     
     possible_moves = avoid_walls(my_head,possible_moves,my_risk_map.size)
     print('\n')
-    print(f"MOVE {data['turn']}")
+    
+    if print_info:
+      print(f"MOVE {data['turn']}")
+    
+      print(f'Possible movesafter only wall avoidance {possible_moves}')
     # Deal with the really stupid death scenarios that confuse the riskmap setup
-    possible_moves = avoid_all_snakes(data, possible_moves)
+    #possible_moves = avoid_all_snakes(data, possible_moves)
     
     if print_info :
       print(f'Possible moves before risk mapping - before deathtraps {possible_moves}')
@@ -127,8 +132,8 @@ def choose_move(data: dict) -> str:
       move = 'down' # No options left... snakies going down!!!
 
    
-    #if print_info:
-    #my_risk_map.print()
+    if print_info:
+      my_risk_map.print()
     
     
     #print(f"\n\n{data['game']['id']} MOVE {data['turn']}:\n {move} picked from all valid options in {possible_moves}\n\n")
