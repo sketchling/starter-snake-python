@@ -1,7 +1,7 @@
 import random
 import risk_map
 from typing import List, Dict
-print_info = True
+print_info = False
 
 
 #avoid other snakes is going haywire!!!
@@ -34,16 +34,20 @@ def avoid_all_snakes(data, possible_moves: List[str]) -> List[str]:
     #print(f"Current head { data['you']['head']['x']}, {data['you']['head']['y']} and current offset is {temp_x},{temp_y} for {dir}")
     for snake in data['board']['snakes']:
       if snake['id'] != data['you']['id']:
+        #print(f" Snake {snake['name']} is not me")
         for dir in directions:
           next_heads.append((snake['body'][0]['x']+directions[dir][0],snake['body'][0]['y']+directions[dir][1]))
           #print(f"{snake['name'][0]} {snake['body']}")
           # print(f'{next_heads} is next heads')
           #iterate through the body but not the tail
-      for i in range(len(snake['body'])-1):
-        if (temp_x == snake['body'][i]['x'] and temp_y == snake['body'][i]['y']): #or ((temp_x,temp_y) in next_heads): 
-          if dir in moves:
-            print(f" Just removed {dir}")
-            moves.remove(dir)
+      
+      for i,segment in enumerate(snake['body']):
+        #print(f"{segment} is {i} " )
+        if (i <= len(snake['body'])-1) and (temp_x == segment['x'] and temp_y == segment['y']) or ((temp_x,temp_y) in next_heads): 
+          if dir in possible_moves:
+            if print_info: 
+              pass#print(f"Removed {dir} to avoid snake {snake['name']}")
+            possible_moves.remove(dir)
             #print(f'Removing: {dir} as it collides with snake body') 
    
     possible_moves = moves
@@ -51,23 +55,21 @@ def avoid_all_snakes(data, possible_moves: List[str]) -> List[str]:
 
 def direction_of(here, there):
   dirs = []
-  
   if here[0] < there[0]:
-    dirs.append('left')
-  elif here[0] > there[0]:
     dirs.append('right')
+  elif here[0] > there[0]:
+    dirs.append('left')
   
   if here[1] < there[1]:
     dirs.append('up')
-  elif here[0] > there[0]:
+  elif here[1] > there[1]:
     dirs.append('down')
 
   return dirs #return a list of all the directions between the two coordinates
 
 def is_against_wall(my_head,size):
-  
+  #check if segment position is against a wall
   is_head_against_a_wall = (my_head['x'] <= 0 or my_head['x'] >= size or my_head['y'] <= 0 or my_head['y'] >= size) 
-  print(f'Head is against a wall? {is_head_against_a_wall}')
   return is_head_against_a_wall
 
 def avoid_deathtraps(my_head,data,possible_directions):
@@ -78,10 +80,10 @@ def avoid_deathtraps(my_head,data,possible_directions):
         head_tup = (data['you']['head']['x'],data['you']['head']['y'])
         touch_tup = (data['you']['body'][i]['x'],data['you']['body'][i]['y'])
         danger_dirs = direction_of(head_tup,touch_tup)
-        print('DEATHTRAP RISK DETECTED!!!!!!')
+        print(f'DEATHTRAP RISK DETECTED! - {danger_dirs}')
         for dir in danger_dirs:
           if dir in possible_directions:
-            print(f'removed {dir} as this was certain death!')
+            print(f'Removed {dir} as this was a deathtrap.')
             possible_directions.remove(dir)
         return possible_directions
   return possible_directions
@@ -100,7 +102,7 @@ def choose_move(data: dict) -> str:
     
     possible_moves = avoid_walls(my_head,possible_moves,my_risk_map.size)
     print('\n')
-    
+    print(f"MOVE {data['turn']}")
     # Deal with the really stupid death scenarios that confuse the riskmap setup
     possible_moves = avoid_all_snakes(data, possible_moves)
     
@@ -115,9 +117,6 @@ def choose_move(data: dict) -> str:
 
     possible_moves = my_risk_map.safest_path(my_head["x"],my_head["y"],possible_moves)
     
-
-
-    
     if print_info :
       print(f'Possible moves after: {possible_moves}')
 
@@ -128,10 +127,10 @@ def choose_move(data: dict) -> str:
       move = 'down' # No options left... snakies going down!!!
 
    
-    if print_info:
-      my_risk_map.print()
+    #if print_info:
+    #my_risk_map.print()
     
-    print(f"MOVE {data['turn']}")
+    
     #print(f"\n\n{data['game']['id']} MOVE {data['turn']}:\n {move} picked from all valid options in {possible_moves}\n\n")
 
     return move

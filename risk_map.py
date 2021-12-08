@@ -111,7 +111,7 @@ class Riskmap:
         num_steps = 1
         change_direction = False    
         
-    print(f'result : {result}')        
+    #print(f'result : {result}')        
     return result
 
   def init_enemy_snakes(self,data):
