@@ -99,6 +99,7 @@ def choose_move(data: dict) -> str:
     my_risk_map = risk_map.Riskmap(data)
     my_risk_map.init_enemy_snakes(data)
     my_risk_map.init_my_snake(data)
+    my_risk_map.init_hazards(data)
     my_risk_map.init_food(data)
     
     possible_moves = avoid_walls(my_head,possible_moves,my_risk_map.size)
@@ -107,13 +108,14 @@ def choose_move(data: dict) -> str:
     if print_info:
       print(f"MOVE {data['turn']}")
     
-      print(f'Possible movesafter only wall avoidance {possible_moves}')
-    # Deal with the really stupid death scenarios that confuse the riskmap setup
+      print(f'Possible moves after only wall avoidance {possible_moves}')
+    
     #possible_moves = avoid_all_snakes(data, possible_moves)
     
     if print_info :
       print(f'Possible moves before risk mapping - before deathtraps {possible_moves}')
     
+    # Deal with the really stupid death scenarios that confuse the riskmap setup
     possible_moves = avoid_deathtraps(my_head,data,possible_moves)
     #then choose from the remaining paths
 

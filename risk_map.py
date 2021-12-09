@@ -20,6 +20,11 @@ class Riskmap:
     self.weight_body= 50.0
     self.weight_head =150.0
     self.distance_multiplier = 2
+    self.weight_hazard =20
+    
+    self.in_the_sauce = False
+
+    self.hazard_multiplier = 2
     self.weight_food = -10
     weight=0
     is_my_snake = False
@@ -59,12 +64,12 @@ class Riskmap:
         for x in self.map:
           cy = 0
           for y in x:
-            temp_blurred_map[cx][cy] = self.average_3x3(cx,cy)
+            temp_blurred_map[cx][cy] = round(self.average_3x3(cx,cy),1)
             cy+=1
           cx +=1
         for x in range(self.size):
           for y in range (self.size):
-            self.map[x][y] = round(temp_blurred_map[x][y],1)
+            self.map[x][y] = temp_blurred_map[x][y]
         
   #calc rays based on position in board space      
   def calc_lines(self, xpos, ypos,remaining_directions):
@@ -133,19 +138,28 @@ class Riskmap:
         '''for dir in self.directions:
           self.map[self.size-1 - snake['head']['y'] + self.directions[dir][1]][snake['head']['x']+ self.directions[dir][0]] = self.weight_head '''
         
-
-    
-
+  def init_hazards(self,data):
+    for hazard in data['board']['hazards']:
+      self.map[(self.size-1) - hazard['y']][hazard['x']] += self.weight_hazard
           
   def init_my_snake(self,data):
     for segment in data['you']['body']:
       self.map[(self.size-1) - segment['y']][segment['x']] = self.weight_body
+      if (segment['y'],segment['x']) in data['board']['hazards']:
+        self.in_the_sauce = True
+      else:
+        self.in_the_sauce = False
   
   def init_food(self,data):
-    self.weight_food = round(-10+(data['you']['health']/10),1)*2 #food attracts more as hunger strikes
+    if self.in_the_sauce:
+      self.hazard_multiplier = 4  
+    else:
+      self.hazard_multiplier = 2 
+
+    self.weight_food = round(-10+(data['you']['health']/10),1)*self.hazard_multiplier #food attracts more as hunger strikes
     
     for segment in data['board']['food']:
-      self.map[(self.size-1) - segment['y']][segment['x']] += round(self.weight_food,1)
+      self.map[(self.size-1) - segment['y']][segment['x']] = round(self.map[(self.size-1) - segment['y']][segment['x']] + self.weight_food,1)
   
   def check_for_deathtraps(data): 
     pass
